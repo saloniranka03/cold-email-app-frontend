@@ -8,14 +8,14 @@ import React from 'react';
 function TemplateGuide() {
   const examples = {
     modern: {
-      title: "Modern Template Example (Recommended)",
+      title: "Modern Template Example",
       template: `Hello {NAME},
 
 Hope you are doing well.
 
 I am writing to express my interest in **{POSITION}** opportunities.
 
-With over 8.5 years of experience in Java development and a newly acquired H4‑EAD work permit and can relocate anywhere within the US.
+With over 8.5 years of experience in Java development and a newly acquired H4‑EAD work permit.
 
 **A bit about what I bring:**
 - Extensive experience in Java-based backend development
@@ -38,7 +38,7 @@ Best regards,
 
 <p>I am writing to express my interest in <b>Full Stack Engineer</b> opportunities.</p>
 
-<p>With over 8.5 years of experience in Java development and a newly acquired H4‑EAD work permit and can relocate anywhere within the US.</p>
+<p>With over 8.5 years of experience in Java development and a newly acquired H4‑EAD work permit.</p>
 
 <p><b>A bit about what I bring:</b></p>
 <ul>
