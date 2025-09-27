@@ -29,41 +29,58 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       //setError(null); // Clear any previous errors
 
-      console.log('Checking auth status...');
+      console.log('🔍 Checking auth status...');
+      console.log('🌍 API_BASE_URL:', API_BASE_URL);
+      console.log('🍪 Document.cookie:', document.cookie);
 
       const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
         method: 'GET',
         credentials: 'include', // Include cookies
       });
 
-      console.log('Auth status response:', response.status);
+      console.log('📡 Auth status response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Auth status data:', data);
+        console.log('✅ Auth status data:', data);
 
         if (data.authenticated) {
+          console.log('🎉 User is authenticated! Setting auth state...');
           setIsAuthenticated(true);
           setUser({
             email: data.email,
             userId: data.userId
           });
         } else {
+          console.log('❌ User not authenticated according to backend');
           setIsAuthenticated(false);
           setUser(null);
         }
       } else {
-        console.log('Auth status failed:', response.status);
+        const errorText = await response.text();
+        console.log('❌ Auth status failed:', response.status, response.statusText);
+        console.log('📄 Error response body:', errorText);
         setIsAuthenticated(false);
         setUser(null);
       }
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error('💥 Error checking auth status:', error);
+      console.log('🔍 Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       setIsAuthenticated(false);
       setUser(null);
       // Don't set error here for initial check - just log it
       console.log('Auth check failed (normal if not authenticated):', error.message);
     } finally {
+      console.log('🏁 Auth check completed. Setting loading to false...');
       setLoading(false);
     }
   };
@@ -71,7 +88,8 @@ export const AuthProvider = ({ children }) => {
   const login = async () => {
     try {
       setError(null);
-      console.log('Starting login process...');
+      console.log('🚀 Starting login process...');
+      console.log('🌍 Login API_BASE_URL:', API_BASE_URL);
 
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'GET',
@@ -81,15 +99,15 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      console.log('Login response status:', response.status);
-      console.log('Login response headers:', response.headers);
+      console.log('📡 Login response status:', response.status);
+      console.log('📋 Login response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Login response data:', data);
+        console.log('✅ Login response data:', data);
 
         if (data.authUrl) {
-          console.log('Redirecting to OAuth URL:', data.authUrl);
+          console.log('🔗 Redirecting to OAuth URL:', data.authUrl);
           // Redirect to Google OAuth
           window.location.href = data.authUrl;
         } else {
@@ -97,11 +115,11 @@ export const AuthProvider = ({ children }) => {
         }
       } else {
         const errorText = await response.text();
-        console.error('Login failed:', response.status, errorText);
+        console.error('❌ Login failed:', response.status, errorText);
         throw new Error(`Login failed: ${response.status} ${errorText}`);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('💥 Login error:', error);
 
       // Check if it's a CORS error
       if (error.message.includes('fetch')) {
@@ -115,12 +133,17 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setError(null);
+      console.log('👋 Starting logout process...');
+      
       const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });
 
+      console.log('📡 Logout response:', response.status);
+
       if (response.ok) {
+        console.log('✅ Logout successful');
         setIsAuthenticated(false);
         setUser(null);
         // Optionally reload the page to clear any app state
@@ -129,7 +152,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Failed to logout');
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('💥 Logout error:', error);
       setError('Failed to logout: ' + error.message);
     }
   };
