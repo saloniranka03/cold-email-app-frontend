@@ -22,11 +22,14 @@ function AuthenticatedApp() {
     fullName: '',
     phoneNumber: '',
     linkedInUrl: '',
-    templatesFolderPath: ''
+    templatesFolderPath: '',
+    templateFiles: [],
+    resumeFiles: []
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [processingResult, setProcessingResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMethod, setProcessingMethod] = useState('upload'); // Default to upload method
 
   // Clear form data
   const handleClearForm = () => {
@@ -34,8 +37,11 @@ function AuthenticatedApp() {
       fullName: '',
       phoneNumber: '',
       linkedInUrl: '',
-      templatesFolderPath: ''
+      templatesFolderPath: '',
+      templateFiles: [],
+      resumeFiles: []
     });
+    setSelectedFile(null);
   };
 
   // Validate form before processing
@@ -50,12 +56,23 @@ function AuthenticatedApp() {
       errors.push('Phone Number is required');
     }
 
-    if (!userInfo.templatesFolderPath.trim()) {
-      errors.push('Templates Folder Path is required');
-    }
-
     if (!selectedFile) {
       errors.push('Excel file is required');
+    }
+
+    // Validate based on processing method
+    if (processingMethod === 'folder') {
+      if (!userInfo.templatesFolderPath.trim()) {
+        errors.push('Templates Folder Path is required for folder method');
+      }
+    } else {
+      // Upload method validation
+      if (!userInfo.templateFiles || userInfo.templateFiles.length === 0) {
+        errors.push('At least one template file is required for upload method');
+      }
+      if (!userInfo.resumeFiles || userInfo.resumeFiles.length === 0) {
+        errors.push('At least one resume file is required for upload method');
+      }
     }
 
     return errors;
@@ -79,7 +96,23 @@ function AuthenticatedApp() {
       formData.append('fullName', userInfo.fullName);
       formData.append('phoneNumber', userInfo.phoneNumber);
       formData.append('linkedInUrl', userInfo.linkedInUrl || '');
-      formData.append('templatesFolderPath', userInfo.templatesFolderPath);
+      formData.append('processingMethod', processingMethod);
+
+      if (processingMethod === 'folder') {
+        formData.append('templatesFolderPath', userInfo.templatesFolderPath);
+      } else {
+        // Add uploaded files
+        if (userInfo.templateFiles) {
+          userInfo.templateFiles.forEach(file => {
+            formData.append('templateFiles', file);
+          });
+        }
+        if (userInfo.resumeFiles) {
+          userInfo.resumeFiles.forEach(file => {
+            formData.append('resumeFiles', file);
+          });
+        }
+      }
 
       // Process emails using authenticated API service
       const result = await ApiService.processEmails(formData);
@@ -184,6 +217,7 @@ function AuthenticatedApp() {
               userInfo={userInfo}
               setUserInfo={setUserInfo}
               onClearForm={handleClearForm}
+              processingMethod={processingMethod}
             />
 
             {/* File Upload Section */}
@@ -191,6 +225,11 @@ function AuthenticatedApp() {
               <FileUpload
                 selectedFile={selectedFile}
                 setSelectedFile={setSelectedFile}
+                userInfo={userInfo}
+                setUserInfo={setUserInfo}
+                isProcessing={isProcessing}
+                processingMethod={processingMethod}
+                setProcessingMethod={setProcessingMethod}
               />
 
               {/* Process Button */}
@@ -215,6 +254,19 @@ function AuthenticatedApp() {
                     This may take a few minutes depending on the number of contacts...
                   </p>
                 )}
+
+                {/* Show current method and file counts */}
+                <div className="process-summary">
+                  <small>
+                    <strong>Method:</strong> {processingMethod === 'folder' ? 'Folder Path' : 'File Upload'}
+                    {processingMethod === 'upload' && (
+                      <>
+                        <br />
+                        <strong>Files:</strong> {userInfo.templateFiles?.length || 0} templates, {userInfo.resumeFiles?.length || 0} resumes
+                      </>
+                    )}
+                  </small>
+                </div>
               </div>
             </div>
           </div>
