@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 
@@ -24,13 +25,42 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
+  // Extract session from URL if present
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
+
+    if (sessionParam) {
+      console.log('📋 Found session in URL parameter:', sessionParam);
+      setSessionId(sessionParam);
+
+      // Store in localStorage for persistence
+      localStorage.setItem('session_id', sessionParam);
+
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      // Check auth status with this session
+      checkAuthStatusWithSession(sessionParam);
+    } else {
+      // Try to get session from localStorage
+      const storedSession = localStorage.getItem('session_id');
+      if (storedSession) {
+        console.log('📋 Found session in localStorage:', storedSession);
+        setSessionId(storedSession);
+        checkAuthStatusWithSession(storedSession);
+      } else {
+        checkAuthStatus();
+      }
+    }
+  }, []);
+
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
-      //setError(null); // Clear any previous errors
 
       console.log('🔍 Checking auth status...');
-      console.log('🌍 API_BASE_URL:', API_BASE_URL);
+      console.log('🌐 API_BASE_URL:', API_BASE_URL);
       console.log('🍪 Document.cookie:', document.cookie);
 
       const response = await fetch(`${API_BASE_URL}/api/auth/status`, {
@@ -77,10 +107,63 @@ export const AuthProvider = ({ children }) => {
       });
       setIsAuthenticated(false);
       setUser(null);
-      // Don't set error here for initial check - just log it
       console.log('Auth check failed (normal if not authenticated):', error.message);
     } finally {
       console.log('🏁 Auth check completed. Setting loading to false...');
+      setLoading(false);
+    }
+  };
+
+  const checkAuthStatusWithSession = async (sessionParam) => {
+    try {
+      setLoading(true);
+
+      console.log('🔍 Checking auth status with session parameter:', sessionParam);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/status?session=${sessionParam}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      console.log('📡 Auth status response with session:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Auth status data with session:', data);
+
+        if (data.authenticated) {
+          console.log('🎉 User is authenticated with session! Setting auth state...');
+          setIsAuthenticated(true);
+          setUser({
+            email: data.email,
+            userId: data.userId
+          });
+          setSessionId(sessionParam);
+        } else {
+          console.log('❌ Session not valid');
+          setIsAuthenticated(false);
+          setUser(null);
+          setSessionId(null);
+          localStorage.removeItem('session_id');
+        }
+      } else {
+        console.log('❌ Auth status failed with session');
+        setIsAuthenticated(false);
+        setUser(null);
+        setSessionId(null);
+        localStorage.removeItem('session_id');
+      }
+    } catch (error) {
+      console.error('💥 Error checking auth status with session:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+      setSessionId(null);
+      localStorage.removeItem('session_id');
+    } finally {
       setLoading(false);
     }
   };
@@ -89,7 +172,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       console.log('🚀 Starting login process...');
-      console.log('🌍 Login API_BASE_URL:', API_BASE_URL);
+      console.log('🌐 Login API_BASE_URL:', API_BASE_URL);
 
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'GET',
@@ -123,7 +206,7 @@ export const AuthProvider = ({ children }) => {
 
       // Check if it's a CORS error
       if (error.message.includes('fetch')) {
-        setError('Unable to connect to authentication server. Please check if the backend is running on http://localhost:8080');
+        setError('Unable to connect to authentication server. Please check if the backend is running.');
       } else {
         setError('Failed to initiate login: ' + error.message);
       }
@@ -134,8 +217,12 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       console.log('👋 Starting logout process...');
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+
+      const logoutUrl = sessionId
+        ? `${API_BASE_URL}/api/auth/logout?session=${sessionId}`
+        : `${API_BASE_URL}/api/auth/logout`;
+
+      const response = await fetch(logoutUrl, {
         method: 'POST',
         credentials: 'include',
       });
@@ -146,6 +233,8 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ Logout successful');
         setIsAuthenticated(false);
         setUser(null);
+        setSessionId(null);
+        localStorage.removeItem('session_id');
         // Optionally reload the page to clear any app state
         window.location.reload();
       } else {
@@ -154,6 +243,12 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('💥 Logout error:', error);
       setError('Failed to logout: ' + error.message);
+
+      // Clear local state anyway
+      setIsAuthenticated(false);
+      setUser(null);
+      setSessionId(null);
+      localStorage.removeItem('session_id');
     }
   };
 
@@ -166,6 +261,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    sessionId,
     login,
     logout,
     checkAuthStatus,
