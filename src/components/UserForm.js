@@ -4,9 +4,9 @@ import React from 'react';
 /**
  * User information form component.
  * Collects required user details for email template processing.
- * Enhanced with form clearing functionality.
+ * Enhanced with form clearing functionality and conditional folder path.
  */
-function UserForm({ userInfo, setUserInfo, onClearForm }) {
+function UserForm({ userInfo, setUserInfo, onClearForm, processingMethod }) {
 
   /**
    * Handles input field changes and updates parent state
@@ -106,22 +106,25 @@ function UserForm({ userInfo, setUserInfo, onClearForm }) {
           </small>
         </div>
 
-        <div className="form-group full-width">
-          <label htmlFor="templatesFolderPath">
-            Templates & Resumes Folder Path <span className="required">*</span>
-          </label>
-          <input
-            type="text"
-            id="templatesFolderPath"
-            placeholder="/Users/username/Desktop/JobEmailerFiles"
-            value={userInfo.templatesFolderPath}
-            onChange={(e) => handleInputChange('templatesFolderPath', e.target.value)}
-            required
-          />
-          <small className="field-help">
-            Absolute path to folder containing your email templates and resume files
-          </small>
-        </div>
+        {/* Only show folder path when using folder method */}
+        {processingMethod === 'folder' && (
+          <div className="form-group full-width">
+            <label htmlFor="templatesFolderPath">
+              Templates & Resumes Folder Path <span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="templatesFolderPath"
+              placeholder="/Users/username/Desktop/JobEmailerFiles"
+              value={userInfo.templatesFolderPath}
+              onChange={(e) => handleInputChange('templatesFolderPath', e.target.value)}
+              required
+            />
+            <small className="field-help">
+              Absolute path to folder containing your email templates and resume files
+            </small>
+          </div>
+        )}
       </div>
 
       <div className="form-tips">
@@ -130,8 +133,11 @@ function UserForm({ userInfo, setUserInfo, onClearForm }) {
           <li><strong>Flexible File Names:</strong> Template files can be named like FSE.txt, fse.txt, or template_FSE.txt</li>
           <li><strong>Resume Finding:</strong> Any .pdf/.docx file containing the role name will be found (case doesn't matter)</li>
           <li><strong>Standardized Attachments:</strong> Resume files are always attached as Full_Name_Role.extension format</li>
-          <li><strong>Placeholders:</strong> Use both {`{NAME}`} (modern) and {`{{CONTACT_NAME}}`} (legacy) formats in templates</li>
+          <li><strong>Placeholders:</strong> Use {`{NAME}`}, {`{POSITION}`}, {`{USER_NAME}`}, {`{PHONE}`}, {`{LINKEDIN}`} in templates</li>
           <li><strong>LinkedIn URL:</strong> Only appears in emails if provided</li>
+          {processingMethod === 'upload' && (
+            <li><strong>File Upload:</strong> Upload template (.txt) and resume (.pdf/.docx) files directly through the interface</li>
+          )}
         </ul>
       </div>
     </div>
